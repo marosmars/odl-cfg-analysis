@@ -3,7 +3,8 @@ ODL config subsystem dependency analysis tool
 
 Installation
 ------------
-easy_install odl_cfg_analysis
+easy_install odl-cfg-analysis
+
 pip3 install odl_cfg_analysis
 
 CLI Usage:
