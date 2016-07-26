@@ -148,7 +148,7 @@ class OdlConfig:
             "{}{}".format(s[s.index('{'):s.index('}') + 1], tag))
 
 
-def get_module_name(module, graph_settings):
+def _get_module_name(module, graph_settings):
     module_node_text = ""
     if graph_settings["module_namespaces"]:
         module_node_text += "{" + (module["module_type_namespace"].replace(":", "_")) + "}"
@@ -158,7 +158,7 @@ def get_module_name(module, graph_settings):
     return module_node_text
 
 
-def get_service_name(service, graph_settings):
+def _get_service_name(service, graph_settings):
     service_node_text = ""
     if graph_settings["service_namespaces"]:
         service_node_text += "{" + (service["service_type_namespace"].replace(":", "_")) + "}"
@@ -167,66 +167,63 @@ def get_service_name(service, graph_settings):
     service_node_text += service["service_name"]
     return service_node_text
 
-# TODO log
-# TODO extract input arguments(fir, format, whether to include namespace or not)
-# TODO add ability to color specific branch(es) depending on input e.g. certain module names
-# config_locations = ["/home/mmarsale/hc-deps/01-netconf.xml", "/home/mmarsale/hc-deps/00-netty.xml"]
-config_locations = ["/home/mmarsale/hc-deps/"]
-modules_of_interest = ["interfaces-honeycomb-writer", "initializer-registry", "v3po-default"]
-graph_settings = {"module_namespaces": False,
-                  "module_types": True,
-                  "service_namespaces": False,
-                  "service_types": False}
-graph_style_file = 'graph_style'
-default_styles = eval(open(graph_style_file, 'r').read())
-graph_format = 'jpeg'
-graph_file = "dependencies"
 
-print("Parsing files {}".format(config_locations))
-
-aggregated = OdlConfig([], [])
-for cfg_loc in config_locations:
-    aggregated = aggregated.merge(OdlConfig.from_config_xml_dir(cfg_loc) if path.isdir(cfg_loc) else
-                                  OdlConfig.from_config_xml(cfg_loc))
-    print("Parsed {}".format(cfg_loc))
-
-
-def extend_down(odl_config, module_of_interest):
+def _extend_down(odl_config, module_of_interest):
     m = odl_config.find_module(module_name=module_of_interest)
     direct_deps = [module_of_interest]
     for dep in m["dependencies"]:
         s = odl_config.find_service(dep["dependency_type_namespace"], dep["dependency_type"], dep["dependency_name"])
-        direct_deps.extend(extend_down(odl_config, s["module_name"]))
+        direct_deps.extend(_extend_down(odl_config, s["module_name"]))
     return direct_deps
 
-modules_of_interest = reduce(lambda a, b: a + b, [extend_down(aggregated, m) for m in modules_of_interest])
-print("Highlighting modules: {}".format(modules_of_interest))
 
-print("Creating graph at {}".format(graph_file))
-g1 = gv.Digraph(format=graph_format, graph_attr=default_styles['graph'], node_attr=default_styles['nodes'], edge_attr=default_styles['edges'])
+def analyze(graph_style_file):
+    # TODO log
+    # TODO extract input arguments(fir, format, whether to include namespace or not)
+    # TODO add ability to color specific branch(es) depending on input e.g. certain module names
+    # config_locations = ["/home/mmarsale/hc-deps/01-netconf.xml", "/home/mmarsale/hc-deps/00-netty.xml"]
+    config_locations = ["/home/mmarsale/hc-deps/"]
+    modules_of_interest = ["interfaces-honeycomb-writer", "initializer-registry", "v3po-default"]
+    graph_settings = {"module_namespaces": False,
+                      "module_types": True,
+                      "service_namespaces": False,
+                      "service_types": False}
+    default_styles = eval(graph_style_file.read())
+    graph_format = 'jpeg'
+    graph_file = "dependencies"
 
-for module in aggregated.modules:
-    # Apply interest style if should
-    node_style = default_styles["nodes_of_interest"] if module["module_name"] in modules_of_interest else {}
-    g1.node(get_module_name(module, graph_settings), _attributes=node_style)
+    print("Parsing files {}".format(config_locations))
+    aggregated = OdlConfig([], [])
+    for cfg_loc in config_locations:
+        aggregated = aggregated.merge(OdlConfig.from_config_xml_dir(cfg_loc) if path.isdir(cfg_loc) else
+                                      OdlConfig.from_config_xml(cfg_loc))
+        print("Parsed {}".format(cfg_loc))
+    modules_of_interest = reduce(lambda a, b: a + b, [_extend_down(aggregated, m) for m in modules_of_interest])
+    # print("Highlighting modules: {}".format(modules_of_interest))
+    print("Creating graph at {}".format(graph_file))
+    g1 = gv.Digraph(format=graph_format, graph_attr=default_styles['graph'], node_attr=default_styles['nodes'],
+                    edge_attr=default_styles['edges'])
+    for module in aggregated.modules:
+        # Apply interest style if should
+        node_style = default_styles["nodes_of_interest"] if module["module_name"] in modules_of_interest else {}
+        g1.node(_get_module_name(module, graph_settings), _attributes=node_style)
 
-    for dep in module["dependencies"]:
-        service = aggregated.find_service(dep["dependency_type_namespace"],
-                                          dep["dependency_type"],
-                                          dep["dependency_name"])
-        if service is None:
-            # Cannot find dependency, create artificial one
-            dependency_module = {"module_type_namespace": dep["dependency_type_namespace"],
-                                 "module_type": dep["dependency_type"],
-                                 "module_name": "UNKNOWN" + dep["dependency_name"]}
-            service = {"service_type_namespace": dep["dependency_type_namespace"],
-                       "service_type": dep["dependency_type"],
-                       "service_name": "UNKNOWN" + dep["dependency_name"]}
-        else:
-            dependency_module = aggregated.find_module(service["module_name"],
-                                                       service["module_type"])
-        g1.edge(get_module_name(module, graph_settings), get_module_name(dependency_module, graph_settings),
-                get_service_name(service, graph_settings))
-
-filename = g1.render(filename=graph_file)
-print("Graph at {} created successfully".format(graph_file))
+        for dep in module["dependencies"]:
+            service = aggregated.find_service(dep["dependency_type_namespace"],
+                                              dep["dependency_type"],
+                                              dep["dependency_name"])
+            if service is None:
+                # Cannot find dependency, create artificial one
+                dependency_module = {"module_type_namespace": dep["dependency_type_namespace"],
+                                     "module_type": dep["dependency_type"],
+                                     "module_name": "UNKNOWN" + dep["dependency_name"]}
+                service = {"service_type_namespace": dep["dependency_type_namespace"],
+                           "service_type": dep["dependency_type"],
+                           "service_name": "UNKNOWN" + dep["dependency_name"]}
+            else:
+                dependency_module = aggregated.find_module(service["module_name"],
+                                                           service["module_type"])
+            g1.edge(_get_module_name(module, graph_settings), _get_module_name(dependency_module, graph_settings),
+                    _get_service_name(service, graph_settings))
+    filename = g1.render(filename=graph_file)
+    print("Graph at {} created successfully".format(filename))
