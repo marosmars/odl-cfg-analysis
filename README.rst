@@ -1,5 +1,7 @@
 ODL config subsystem dependency analysis tool
 ---------------------------------------------
 
-Usage:
-------
+CLI Usage:
+----------
+
+odl-cfg-analyze --paths-to-analyze /home/projects/hc-deps/ --highlight-modules initializer-registry
