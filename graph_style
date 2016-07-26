@@ -1,0 +1,28 @@
+{
+    'graph': {
+        'fontsize': '12',
+        'fontcolor': 'white',
+        'bgcolor': '#333333',
+        'splines': 'line',
+    },
+    'nodes': {
+        'fontname': 'Helvetica',
+        'shape': 'polygon',
+        'fontcolor': 'white',
+        'color': 'white',
+        'style': 'filled',
+        'fillcolor': '#006699',
+    },
+    'nodes_of_interest': {
+        'style': 'filled',
+        'fillcolor': "#DE5D6A",
+    },
+    'edges': {
+        'style': 'solid',
+        'color': 'white',
+        'arrowhead': 'open',
+        'fontname': 'Courier',
+        'fontsize': '12',
+        'fontcolor': 'white',
+    }
+}
