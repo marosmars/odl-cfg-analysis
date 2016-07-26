@@ -6,7 +6,7 @@ def readme():
         return f.read()
 
 setup(name='odl_cfg_analysis',
-      version='0.1',
+      version='0.1.1',
       description='Small utility visualizing ODLs config subsystem dependencies by parsing xml based config files',
       long_description=readme(),
       url='https://github.com/marosmars/odl-cfg-analysis',
