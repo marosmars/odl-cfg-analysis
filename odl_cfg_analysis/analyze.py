@@ -177,36 +177,28 @@ def _extend_down(odl_config, module_of_interest):
     return direct_deps
 
 
-def analyze(graph_style_file):
+def analyze(graph_style_file, graph_format, graph_file, paths_to_analyze, highlight_modules):
     # TODO log
-    # TODO extract input arguments(fir, format, whether to include namespace or not)
-    # TODO add ability to color specific branch(es) depending on input e.g. certain module names
-    # config_locations = ["/home/mmarsale/hc-deps/01-netconf.xml", "/home/mmarsale/hc-deps/00-netty.xml"]
-    config_locations = ["/home/mmarsale/hc-deps/"]
-    modules_of_interest = ["interfaces-honeycomb-writer", "initializer-registry", "v3po-default"]
-    graph_settings = {"module_namespaces": False,
-                      "module_types": True,
-                      "service_namespaces": False,
-                      "service_types": False}
     default_styles = eval(graph_style_file.read())
-    graph_format = 'jpeg'
-    graph_file = "dependencies"
 
-    print("Parsing files {}".format(config_locations))
+    print("Parsing files {}".format(paths_to_analyze))
     aggregated = OdlConfig([], [])
-    for cfg_loc in config_locations:
+    for cfg_loc in paths_to_analyze:
         aggregated = aggregated.merge(OdlConfig.from_config_xml_dir(cfg_loc) if path.isdir(cfg_loc) else
                                       OdlConfig.from_config_xml(cfg_loc))
         print("Parsed {}".format(cfg_loc))
-    modules_of_interest = reduce(lambda a, b: a + b, [_extend_down(aggregated, m) for m in modules_of_interest])
+
+    if highlight_modules:
+        highlight_modules = reduce(lambda a, b: a + b, [_extend_down(aggregated, m) for m in highlight_modules])
+
     # print("Highlighting modules: {}".format(modules_of_interest))
     print("Creating graph at {}".format(graph_file))
     g1 = gv.Digraph(format=graph_format, graph_attr=default_styles['graph'], node_attr=default_styles['nodes'],
                     edge_attr=default_styles['edges'])
     for module in aggregated.modules:
         # Apply interest style if should
-        node_style = default_styles["nodes_of_interest"] if module["module_name"] in modules_of_interest else {}
-        g1.node(_get_module_name(module, graph_settings), _attributes=node_style)
+        node_style = default_styles["nodes_of_interest"] if module["module_name"] in highlight_modules else {}
+        g1.node(_get_module_name(module, default_styles["labels"]), _attributes=node_style)
 
         for dep in module["dependencies"]:
             service = aggregated.find_service(dep["dependency_type_namespace"],
@@ -223,7 +215,8 @@ def analyze(graph_style_file):
             else:
                 dependency_module = aggregated.find_module(service["module_name"],
                                                            service["module_type"])
-            g1.edge(_get_module_name(module, graph_settings), _get_module_name(dependency_module, graph_settings),
-                    _get_service_name(service, graph_settings))
+            g1.edge(_get_module_name(module, default_styles["labels"]),
+                    _get_module_name(dependency_module, default_styles["labels"]),
+                    _get_service_name(service, default_styles["labels"]))
     filename = g1.render(filename=graph_file)
     print("Graph at {} created successfully".format(filename))

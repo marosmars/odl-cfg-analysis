@@ -13,6 +13,7 @@
         'style': 'filled',
         'fillcolor': '#006699',
     },
+    # Highlighted nodes style
     'nodes_of_interest': {
         'style': 'filled',
         'fillcolor': "#DE5D6A",
@@ -24,5 +25,12 @@
         'fontname': 'Courier',
         'fontsize': '12',
         'fontcolor': 'white',
-    }
+    },
+    # Whether to include namespaces and types of nodes and edges in graph
+    'labels': {
+        'module_namespaces': False,
+        'module_types': True,
+        'service_namespaces': False,
+        'service_types': False,
+    },
 }

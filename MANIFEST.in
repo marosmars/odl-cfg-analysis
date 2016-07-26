@@ -1,2 +1,2 @@
 include README.rst
-include graph_style
+include odl_cfg_analysis/graph_style
